@@ -2,17 +2,39 @@
 **Unauthorized TOR Browser Installation and Use**
 
 ## Steps the "Bad Actor" took Create Logs and IoCs:
-1. Download the TOR browser installer: https://www.torproject.org/download/
-2. Install it silently: ```tor-browser-windows-x86_64-portable-14.0.1.exe /S```
-3. Opens the TOR browser from the folder on the desktop
-4. Connect to TOR and browse a few sites. For example:
-   - **WARNING: The links to onion sites change a lot and these have changed. However if you connect to Tor and browse around normal sites a bit, the necessary logs should still be created:**
-   - Current Dread Forum: ```dreadytofatroptsdj6io7l3xptbet6onoyno2yv7jicoxknyazubrad.onion```
-   - Dark Markets Forum: ```dreadytofatroptsdj6io7l3xptbet6onoyno2yv7jicoxknyazubrad.onion/d/DarkNetMarkets```
-   - Current Elysium Market: ```elysiumutkwscnmdohj23gkcyp3ebrf4iio3sngc5tvcgyfp4nqqmwad.top/login```
+1. Generate Fake Employee Data:
+Creates a CSV file (employee-data-<timestamp>.csv) containing synthetic employee information, including names, Social Security Numbers (SSNs), phone numbers, salaries, and dates of birth.
+GitHub
++1
+GitHub
++1
 
-6. Create a folder on your desktop called ```tor-shopping-list.txt``` and put a few fake (illicit) items in there
-7. Delete the file.
+2. Download and Install 7-Zip:
+
+Downloads the 7-Zip installer from a specified URL and installs it silently to enable file compression capabilities.
+GitHub
+
+3. Compress the Data:
+
+Uses 7-Zip to compress the generated CSV file into a ZIP archive (employee-data-<timestamp>.zip).
+GitHub
++1
+GitHub
++1
+
+4. Upload to Azure Blob Storage:
+
+Utilizes hardcoded Azure storage account credentials to upload the ZIP file to a specified Azure Blob Storage container, simulating data exfiltration to an external cloud service.
+GitHub
+
+4. Cleanup and Logging:
+
+Moves the original CSV and ZIP files to a backup directory (C:\ProgramData\backup) and logs each step of the process to a log file (C:\ProgramData\entropygorilla.log).
+GitHub
++1
+GitHub
++1
+
 
 ---
 
@@ -21,63 +43,57 @@
 |---------------------|------------------------------------------------------------------------------|
 | **Name**| DeviceFileEvents|
 | **Info**|https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-deviceinfo-table|
-| **Purpose**| Used for detecting TOR download and installation, as well as the shopping list creation and deletion. |
+| **Purpose**| Look for any file activity, based on the Timestamp from any discovered process activity
+. |
 
 | **Parameter**       | **Description**                                                              |
 |---------------------|------------------------------------------------------------------------------|
 | **Name**| DeviceProcessEvents|
 | **Info**|https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-deviceinfo-table|
-| **Purpose**| Used to detect the silent installation of TOR as well as the TOR browser and service launching.|
+| **Purpose**| Look for any kind of archive activity.|
 
 | **Parameter**       | **Description**                                                              |
 |---------------------|------------------------------------------------------------------------------|
 | **Name**| DeviceNetworkEvents|
 | **Info**|https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-devicenetworkevents-table|
-| **Purpose**| Used to detect TOR network activity, specifically tor.exe and firefox.exe making connections over ports to be used by TOR (9001, 9030, 9040, 9050, 9051, 9150).|
+| **Purpose**| Look for any network activity, based on the Timestamp from the process or file activity.|
 
 ---
 
 ## Related Queries:
 ```kql
-// Installer name == tor-browser-windows-x86_64-portable-(version).exe
-// Detect the installer being downloaded
 DeviceFileEvents
-| where FileName startswith "tor"
-
-// TOR Browser being silently installed
-// Take note of two spaces before the /S (I don't know why)
-DeviceProcessEvents
-| where ProcessCommandLine contains "tor-browser-windows-x86_64-portable-14.0.1.exe  /S"
-| project Timestamp, DeviceName, ActionType, FileName, ProcessCommandLine
-
-// TOR Browser or service was successfully installed and is present on the disk
-DeviceFileEvents
-| where FileName has_any ("tor.exe", "firefox.exe")
-| project  Timestamp, DeviceName, RequestAccountName, ActionType, InitiatingProcessCommandLine
-
-// TOR Browser or service was launched
-DeviceProcessEvents
-| where ProcessCommandLine has_any("tor.exe","firefox.exe")
-| project  Timestamp, DeviceName, AccountName, ActionType, ProcessCommandLine
-
-// TOR Browser or service is being used and is actively creating network connections
-DeviceNetworkEvents
-| where InitiatingProcessFileName in~ ("tor.exe", "firefox.exe")
-| where RemotePort in (9001, 9030, 9040, 9050, 9051, 9150)
-| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, RemoteIP, RemotePort, RemoteUrl
+| where DeviceName == "kuda-hunt"
+| where FileName endswith ".zip"
 | order by Timestamp desc
 
-// User shopping list was created and, changed, or deleted
-DeviceFileEvents
-| where FileName contains "shopping-list.txt"
+//2025-05-09T02:32:32.1623254Z
+// Look for any network activity, based on the Timestamp from the process or file activity
+let VMName = "kuda-hunt";
+let specificTime = datetime(2025-05-09T07:10:21.7540198Z);
+DeviceProcessEvents
+| where Timestamp between ((specificTime - 2m) .. (specificTime + 2m))
+| where DeviceName == VMName
+| order by Timestamp desc
+| project Timestamp, DeviceName, ActionType, FileName, ProcessCommandLine
+
+
+let VMName = "kuda-hunt";
+let specificTime = datetime(2025-05-09T07:10:21.7540198Z);
+DeviceNetworkEvents
+| where Timestamp between ((specificTime - 10m) .. (specificTime + 10m))
+| where DeviceName == VMName
+| order by Timestamp desc
+| project Timestamp, DeviceName, ActionType
+
 ```
 
 ---
 
 ## Created By:
-- **Author Name**: Josh Madakor
-- **Author Contact**: https://www.linkedin.com/in/joshmadakor/
-- **Date**: August 31, 2024
+- **Author Name**: Kuda Gotora
+- **Author Contact**: www.linkedin.com/in/kudakwashe-gotora-a740a1316
+- **Date**: May 12, 2025
 
 ## Validated By:
 - **Reviewer Name**: 
@@ -94,4 +110,4 @@ DeviceFileEvents
 ## Revision History:
 | **Version** | **Changes**                   | **Date**         | **Modified By**   |
 |-------------|-------------------------------|------------------|-------------------|
-| 1.0         | Initial draft                  | `September  6, 2024`  | `Josh Madakor`   
+| 1.0         | Initial draft                  | ` May 12, 2025`  | `Kuda Gotora`   
